@@ -66,6 +66,13 @@ A **Makefile** is provided to simplify testing and interaction with the API endp
     ```bash
     make help
     ```
+## Running tests
+
+In order to run the tests, use the command:
+
+```bash
+go test
+```
 
 ## Reference
 

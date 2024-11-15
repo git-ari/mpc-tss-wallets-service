@@ -19,6 +19,18 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// signDataRequest represents the request body for signData endpoint
+type signDataRequest struct {
+	Data   string `json:"data"`
+	Wallet string `json:"wallet"`
+}
+
+// walletsResponse represents the response body for list wallets endpoint
+type walletsResponse struct {
+	Address string `json:"address"`
+	PubKey  string `json:"pubKey"`
+}
+
 // Wallet represents a TSS wallet with its associated data
 type Wallet struct {
 	Address   string
@@ -44,7 +56,7 @@ func main() {
 	r := gin.Default()
 	r.POST("/wallet", createWallet)
 	r.GET("/wallets", listWallets)
-	r.GET("/sign", signData)
+	r.POST("/sign", signData)
 	r.Run(":8080")
 }
 
@@ -193,17 +205,28 @@ func listWallets(c *gin.Context) {
 	walletsMutex.Lock()
 	defer walletsMutex.Unlock()
 
-	addresses := make([]string, 0, len(wallets))
-	for addr := range wallets {
-		addresses = append(addresses, addr)
+	walletsResp := make([]walletsResponse, 0, len(wallets))
+	for addr, wallet := range wallets {
+		walletsResp = append(walletsResp, walletsResponse{
+			Address: addr,
+			// Removing the first byte as it is not necesary since its a prefix
+			PubKey: fmt.Sprintf("0x%x", crypto.FromECDSAPub(wallet.PubKey)[1:]),
+		})
 	}
-	c.JSON(http.StatusOK, gin.H{"wallets": addresses})
+	c.JSON(http.StatusOK, gin.H{"wallets": walletsResp})
 }
 
 // signData handles the signing of data using a specified wallet
 func signData(c *gin.Context) {
-	dataHex := c.Query("data")
-	walletAddress := c.Query("wallet")
+	var requestBody signDataRequest
+
+	if err := c.BindJSON(&requestBody); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+		return
+	}
+
+	dataHex := requestBody.Data
+	walletAddress := requestBody.Wallet
 	if dataHex == "" || walletAddress == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "data and wallet are required"})
 		return

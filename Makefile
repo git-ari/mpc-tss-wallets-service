@@ -10,7 +10,8 @@ create-wallet:
 
 # Sign data (transactions) with a wallet
 sign-data:
-	curl -X GET "$(BASE_URL)/sign?data=$(data)&wallet=$(wallet)" -H "Accept: application/json"
+	curl -X POST "$(BASE_URL)/sign" -d '{"data": "$(data)", "wallet": "$(wallet)"}' \
+		 -H "Accept: application/json" -H "Content-Type: application/json"
 
 # Runs a full example of the service functionalities
 full-example:
